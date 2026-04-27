@@ -41,12 +41,21 @@ export const RegisterPage = () => {
   const setProfile = useAuthStore((s) => s.setProfile);
   const theme = useThemeStore((s) => s.theme);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Bumped on every failed submit so the Turnstile widget remounts and the user is
+  // presented with a fresh, visibly-unsolved challenge. Without this, a consumed or
+  // expired token leaves the widget displaying "verified" while our state has cleared
+  // it, producing a confusing "complete the CAPTCHA" message on the next attempt.
+  const [captchaNonce, setCaptchaNonce] = useState(0);
   const onCaptchaVerify = useCallback((token: string) => setCaptchaToken(token), []);
-  const onCaptchaExpire = useCallback(() => setCaptchaToken(null), []);
+  const onCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaNonce((n) => n + 1);
+  }, []);
 
   const onSubmit = async (values: FormValues) => {
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       toast.error(t('auth.captchaRequired'));
+      setCaptchaNonce((n) => n + 1);
       return;
     }
     try {
@@ -61,8 +70,8 @@ export const RegisterPage = () => {
         (e as { response?: { data?: { errors?: Record<string, string[]> } } }).response?.data?.errors;
       const first = msg ? Object.values(msg)[0]?.[0] : null;
       toast.error(first ?? t('auth.registrationFailed'));
-      // The token is single-use — force a fresh challenge after a failed submit.
       setCaptchaToken(null);
+      setCaptchaNonce((n) => n + 1);
     }
   };
 
@@ -109,6 +118,7 @@ export const RegisterPage = () => {
             </div>
 
             <Turnstile
+              key={captchaNonce}
               siteKey={TURNSTILE_SITE_KEY}
               theme={theme === 'dark' ? 'dark' : 'light'}
               onVerify={onCaptchaVerify}
