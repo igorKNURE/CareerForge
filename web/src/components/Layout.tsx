@@ -67,7 +67,7 @@ export const Layout = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       {/* Top header */}
       <header
         className="sticky top-0 z-30 border-b border-stone-200/70 bg-[color:var(--color-canvas)]/80 backdrop-blur-md dark:border-stone-800/60 dark:bg-[color:var(--color-canvas-dark)]/80"

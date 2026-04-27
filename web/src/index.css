@@ -84,6 +84,7 @@
   body {
     background-color: var(--color-canvas-dark);
     @apply text-stone-100 antialiased;
+    overflow-x: hidden;
     /* Disables vertical rubber-band overscroll. */
     overscroll-behavior-y: none;
   }
