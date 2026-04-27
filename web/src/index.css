@@ -84,8 +84,9 @@
   body {
     background-color: var(--color-canvas-dark);
     @apply text-stone-100 antialiased;
-    overflow-x: hidden;
-    /* Disables vertical rubber-band overscroll. */
+    /* Disables vertical rubber-band overscroll. Horizontal clipping is handled at the
+       html level via `overflow-x: clip` so body remains a non-scrolling element and the
+       browser only renders the document's single vertical scrollbar. */
     overscroll-behavior-y: none;
   }
 

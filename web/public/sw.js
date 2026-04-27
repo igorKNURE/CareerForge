@@ -10,7 +10,7 @@
  * Capacitor builds bundle assets natively and skip service-worker registration.
  */
 
-const CACHE_NAME = 'cf-shell-v1';
+const CACHE_NAME = 'cf-shell-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -38,15 +38,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation: network-first ensures users receive fresh deployments; the cached
-  // shell is served on network failure.
+  // Navigation: network-first. Successful (2xx) responses refresh the cached shell;
+  // non-2xx responses (e.g. a 404 served before the SPA rewrite was configured) are
+  // never cached, otherwise a stale error page could be pinned for the user. On
+  // network failure or non-2xx, fall back to the cached shell so deep-link reloads
+  // still resolve to the application.
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put('/index.html', copy)).catch(() => {});
-          return res;
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put('/index.html', copy)).catch(() => {});
+            return res;
+          }
+          return caches.match('/index.html').then((m) => m || res);
         })
         .catch(() => caches.match('/index.html').then((m) => m || new Response('Offline', { status: 503 }))),
     );
