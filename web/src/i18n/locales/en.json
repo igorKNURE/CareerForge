@@ -59,6 +59,7 @@
     "backToSignIn": "Back to sign in",
     "invalidCredentials": "Invalid email or password",
     "registrationFailed": "Registration failed",
+    "captchaRequired": "Please complete the CAPTCHA challenge before continuing.",
     "accountCreated": "Account created",
     "passwordUpdated": "Password updated. Please sign in.",
     "resetFailed": "Reset failed",

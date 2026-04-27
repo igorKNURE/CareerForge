@@ -1,0 +1,69 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using CareerForge.Application.Abstractions.Email;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace CareerForge.Infrastructure.Email;
+
+/// <summary>
+/// <see cref="IEmailSender"/> backed by the Resend HTTP API
+/// (<see href="https://resend.com/docs/api-reference"/>). Authentication uses a single
+/// API key supplied via configuration.
+/// </summary>
+public sealed class ResendEmailSender(
+    HttpClient httpClient,
+    IOptions<EmailOptions> emailOptions,
+    IOptions<ResendOptions> resendOptions,
+    ILogger<ResendEmailSender> logger)
+    : IEmailSender
+{
+    public const string HttpClientName = "resend";
+
+    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        var email = emailOptions.Value;
+        var resend = resendOptions.Value;
+
+        if (string.IsNullOrWhiteSpace(resend.ApiKey))
+        {
+            logger.LogWarning("Resend API key not configured; dropping email to {To}", message.ToEmail);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(email.From))
+        {
+            logger.LogWarning("Email From address not configured; dropping email to {To}", message.ToEmail);
+            return;
+        }
+
+        var from = string.IsNullOrWhiteSpace(email.FromName)
+            ? email.From
+            : $"{email.FromName} <{email.From}>";
+
+        var payload = new
+        {
+            from,
+            to = string.IsNullOrWhiteSpace(message.ToName)
+                ? new[] { message.ToEmail }
+                : new[] { $"{message.ToName} <{message.ToEmail}>" },
+            subject = message.Subject,
+            text = message.TextBody,
+            html = message.HtmlBody,
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/emails")
+        {
+            Content = JsonContent.Create(payload),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resend.ApiKey);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogError(
+                "Resend send failed for {To}: {Status} {Body}",
+                message.ToEmail, (int)response.StatusCode, body);
+        }
+    }
+}

@@ -1,15 +1,20 @@
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useThemeStore } from '@/stores/theme.store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input, Label, FieldError } from '@/components/ui/Input';
+import { Turnstile } from '@/components/Turnstile';
 import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/stores/auth.store';
 import { Spinner } from '@/components/ui/Spinner';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 /** Account creation form; on success drops the user straight into the app via the auth store. */
 export const RegisterPage = () => {
@@ -34,10 +39,19 @@ export const RegisterPage = () => {
   });
 
   const setProfile = useAuthStore((s) => s.setProfile);
+  const theme = useThemeStore((s) => s.theme);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const onCaptchaVerify = useCallback((token: string) => setCaptchaToken(token), []);
+  const onCaptchaExpire = useCallback(() => setCaptchaToken(null), []);
+
   const onSubmit = async (values: FormValues) => {
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      toast.error(t('auth.captchaRequired'));
+      return;
+    }
     try {
       const trimmedName = values.displayName?.trim() || undefined;
-      const auth = await authApi.register(values.email, values.password, trimmedName);
+      const auth = await authApi.register(values.email, values.password, trimmedName, captchaToken ?? undefined);
       setTokens(auth, values.email);
       setProfile({ email: values.email, displayName: trimmedName ?? null });
       toast.success(t('auth.accountCreated'));
@@ -47,6 +61,8 @@ export const RegisterPage = () => {
         (e as { response?: { data?: { errors?: Record<string, string[]> } } }).response?.data?.errors;
       const first = msg ? Object.values(msg)[0]?.[0] : null;
       toast.error(first ?? t('auth.registrationFailed'));
+      // The token is single-use — force a fresh challenge after a failed submit.
+      setCaptchaToken(null);
     }
   };
 
@@ -91,6 +107,13 @@ export const RegisterPage = () => {
               <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
               <FieldError message={formState.errors.password?.message} />
             </div>
+
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              theme={theme === 'dark' ? 'dark' : 'light'}
+              onVerify={onCaptchaVerify}
+              onExpire={onCaptchaExpire}
+            />
 
             <Button type="submit" size="lg" className="w-full" disabled={formState.isSubmitting}>
               {formState.isSubmitting ? <Spinner /> : t('auth.createAccount')}

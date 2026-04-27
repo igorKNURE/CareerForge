@@ -59,6 +59,7 @@
     "backToSignIn": "Назад до входу",
     "invalidCredentials": "Невірна пошта або пароль",
     "registrationFailed": "Не вдалося зареєструватися",
+    "captchaRequired": "Будь ласка, пройдіть перевірку CAPTCHA перед продовженням.",
     "accountCreated": "Акаунт створено",
     "passwordUpdated": "Пароль оновлено. Увійдіть, будь ласка.",
     "resetFailed": "Не вдалося скинути пароль",

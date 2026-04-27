@@ -6,11 +6,17 @@ using Microsoft.EntityFrameworkCore;
 namespace CareerForge.Infrastructure.Interview;
 
 /// <summary>
-/// Picks a curated bank question by JD-skill-tag overlap, breaking ties by least-used so we
-/// rotate through the catalogue. The bank is English-only; non-English requests bypass it.
+/// Picks a curated bank question that is genuinely relevant to the role. An entry is
+/// considered relevant when at least one of its skill tags overlaps the job description,
+/// or when it is tagged as <c>general</c> (role-agnostic warm-ups such as
+/// behavioural / resume questions). Entries without overlap and without the
+/// <c>general</c> tag are excluded so a 3D artist applying for a non-engineering role
+/// is never offered a .NET question.
 /// </summary>
 public sealed class QuestionBankSelector(AppDbContext db) : IQuestionBankSelector
 {
+    private const string GeneralTag = "general";
+
     public async Task<BankedQuestion?> PickAsync(
         QuestionDifficulty difficulty,
         IReadOnlyList<QuestionCategory> preferredCategories,
@@ -36,7 +42,9 @@ public sealed class QuestionBankSelector(AppDbContext db) : IQuestionBankSelecto
             {
                 Entry = q,
                 MatchCount = q.SkillTags.Count(t => jdSkills.Contains(NormalizeTag(t))),
+                IsGeneral = q.SkillTags.Any(t => string.Equals(NormalizeTag(t), GeneralTag, StringComparison.Ordinal)),
             })
+            .Where(x => x.MatchCount > 0 || x.IsGeneral)
             .OrderByDescending(x => x.MatchCount)
             .ThenBy(x => x.Entry.UseCount)
             .ThenBy(_ => Random.Shared.Next())

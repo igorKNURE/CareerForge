@@ -1,10 +1,14 @@
 using CareerForge.Api.Common;
 using CareerForge.Api.Validation;
 using CareerForge.Application.Abstractions.Auth;
+using CareerForge.Application.Abstractions.Captcha;
+using CareerForge.Application.Abstractions.Email;
 using CareerForge.Application.Auth.Dtos;
+using CareerForge.Infrastructure.Auth;
 using CareerForge.Infrastructure.Identity;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace CareerForge.Api.Endpoints;
 
@@ -45,6 +49,7 @@ public static class AuthEndpoints
     private static async Task<Ok<DevTokenResponse>> ForgotPasswordAsync(
         ForgotPasswordRequest request,
         UserManager<ApplicationUser> userManager,
+        IEmailSender emailSender,
         IHostEnvironment env,
         CancellationToken ct)
     {
@@ -53,6 +58,11 @@ public static class AuthEndpoints
         if (user is not null)
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            await emailSender.SendAsync(new EmailMessage(
+                ToEmail: user.Email!,
+                ToName: user.DisplayName,
+                Subject: "CareerForge — reset your password",
+                TextBody: $"Use this token to reset your password: {token}"), ct);
             if (env.IsDevelopment()) devToken = token;
         }
         return TypedResults.Ok(new DevTokenResponse(
@@ -81,6 +91,7 @@ public static class AuthEndpoints
     private static async Task<Ok<DevTokenResponse>> SendConfirmAsync(
         SendEmailConfirmRequest request,
         UserManager<ApplicationUser> userManager,
+        IEmailSender emailSender,
         IHostEnvironment env,
         CancellationToken ct)
     {
@@ -89,6 +100,11 @@ public static class AuthEndpoints
         if (user is not null && !user.EmailConfirmed)
         {
             var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+            await emailSender.SendAsync(new EmailMessage(
+                ToEmail: user.Email!,
+                ToName: user.DisplayName,
+                Subject: "CareerForge — confirm your email",
+                TextBody: $"Use this token to confirm your email: {token}"), ct);
             if (env.IsDevelopment()) devToken = token;
         }
         return TypedResults.Ok(new DevTokenResponse(
@@ -113,11 +129,32 @@ public static class AuthEndpoints
 
     private static async Task<Results<Ok<AuthResponse>, ValidationProblem>> RegisterAsync(
         RegisterRequest request,
+        HttpContext httpContext,
         UserManager<ApplicationUser> userManager,
         IJwtTokenService jwt,
         IRefreshTokenService refresh,
+        IOptions<AuthOptions> authOptions,
+        ICaptchaVerifier captcha,
         CancellationToken ct)
     {
+        var captchaOk = await captcha.VerifyAsync(
+            request.CaptchaToken, httpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        if (!captchaOk)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["captcha"] = new[] { "CAPTCHA verification failed; refresh the page and try again." },
+            });
+        }
+
+        if (!authOptions.Value.IsAllowed(request.Email))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["email"] = new[] { "Registration is restricted; this email address is not permitted." },
+            });
+        }
+
         var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim();
         var user = new ApplicationUser
         {

@@ -3,9 +3,9 @@ import type { AuthResponse, MeResponse } from '@/types/api';
 
 /** Thin wrappers around the <code>/auth/*</code> endpoints (register, login, refresh, password reset, email confirmation). */
 export const authApi = {
-  register: (email: string, password: string, displayName?: string) =>
+  register: (email: string, password: string, displayName?: string, captchaToken?: string) =>
     api
-      .post<AuthResponse>('/auth/register', { email, password, displayName })
+      .post<AuthResponse>('/auth/register', { email, password, displayName, captchaToken })
       .then((r) => r.data),
   login: (email: string, password: string) =>
     api.post<AuthResponse>('/auth/login', { email, password }).then((r) => r.data),

@@ -1,6 +1,8 @@
 using CareerForge.Application.Abstractions.Auth;
 using CareerForge.Application.Abstractions.BackgroundJobs;
+using CareerForge.Application.Abstractions.Captcha;
 using CareerForge.Application.Abstractions.Documents;
+using CareerForge.Application.Abstractions.Email;
 using CareerForge.Application.Abstractions.Interview;
 using CareerForge.Application.Abstractions.JobDescriptions;
 using CareerForge.Application.Abstractions.Llm;
@@ -13,7 +15,9 @@ using CareerForge.Application.Matching;
 using CareerForge.Application.Resumes;
 using CareerForge.Infrastructure.Auth;
 using CareerForge.Infrastructure.BackgroundJobs;
+using CareerForge.Infrastructure.Captcha;
 using CareerForge.Infrastructure.Documents;
+using CareerForge.Infrastructure.Email;
 using CareerForge.Infrastructure.Identity;
 using CareerForge.Infrastructure.Llm;
 using CareerForge.Infrastructure.Llm.Factories;
@@ -42,7 +46,49 @@ public static class DependencyInjection
         AddLlm(services, configuration);
         AddDocuments(services);
         AddBackgroundJobs(services);
+        AddEmail(services, configuration);
+        AddCaptcha(services, configuration);
         return services;
+    }
+
+    /// <summary>
+    /// CAPTCHA verification. The Turnstile verifier is always registered; when no
+    /// secret key is configured it short-circuits to permit all requests, preserving the
+    /// development experience.
+    /// </summary>
+    private static void AddCaptcha(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<TurnstileOptions>(configuration.GetSection(TurnstileOptions.SectionName));
+        services.AddHttpClient<ICaptchaVerifier, TurnstileVerifier>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+    }
+
+    /// <summary>
+    /// Email transport. Resolved by configuration: <c>Email:Provider</c> selects the
+    /// implementation. Unset or unknown values fall back to a no-op log sender, keeping
+    /// the development experience identical when no transport is wired.
+    /// </summary>
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<ResendOptions>(configuration.GetSection(ResendOptions.SectionName));
+
+        var provider = configuration[$"{EmailOptions.SectionName}:Provider"]?.ToLowerInvariant();
+        if (provider == "resend")
+        {
+            services.AddHttpClient<IEmailSender, ResendEmailSender>((sp, client) =>
+            {
+                var opts = sp.GetRequiredService<IOptions<ResendOptions>>().Value;
+                client.BaseAddress = new Uri(opts.BaseUrl.TrimEnd('/') + "/");
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, LogEmailSender>();
+        }
     }
 
     /// <summary>
@@ -81,6 +127,7 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
