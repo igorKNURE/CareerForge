@@ -36,13 +36,9 @@ public sealed class ResendEmailSender(
             return;
         }
 
-        // Trim configured values defensively — env-var copy/paste sometimes introduces
-        // surrounding whitespace, which Resend rejects as a malformed address.
-        var fromAddress = email.From.Trim();
-        var fromName = email.FromName?.Trim();
-        var from = string.IsNullOrWhiteSpace(fromName)
-            ? fromAddress
-            : $"{fromName} <{fromAddress}>";
+        var from = string.IsNullOrWhiteSpace(email.FromName)
+            ? email.From
+            : $"{email.FromName} <{email.From}>";
 
         // Recipient is sent as a bare address rather than RFC "Name <email>" format.
         // Resend's free-tier sandbox compares the recipient string against the verified
