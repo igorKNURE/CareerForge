@@ -71,9 +71,9 @@
     /* The iOS WebView paints this colour in the overscroll regions and behind the
        status bar / home indicator. Without it, the underlying view would show. */
     background-color: var(--color-canvas-dark);
-    /* Disable horizontal scroll to prevent any overflowing element from shifting the
-       layout sideways under the notch on mobile devices. */
-    overflow-x: hidden;
+    /* Clip horizontal overflow without creating a scroll container — preserves the
+       document's vertical scroll while preventing layout shift under the iOS notch. */
+    overflow-x: clip;
   }
 
   html.light {
