@@ -40,12 +40,14 @@ public sealed class ResendEmailSender(
             ? email.From
             : $"{email.FromName} <{email.From}>";
 
+        // Recipient is sent as a bare address rather than RFC "Name <email>" format.
+        // Resend's free-tier sandbox compares the recipient string against the verified
+        // developer email; the angle-bracket form fails that comparison even when the
+        // address is identical. Bare addresses pass.
         var payload = new
         {
             from,
-            to = string.IsNullOrWhiteSpace(message.ToName)
-                ? new[] { message.ToEmail }
-                : new[] { $"{message.ToName} <{message.ToEmail}>" },
+            to = new[] { message.ToEmail },
             subject = message.Subject,
             text = message.TextBody,
             html = message.HtmlBody,
