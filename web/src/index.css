@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;450;500;600&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+
+  --color-canvas: #faf7f2;
+  --color-canvas-dark: #1b1816;
+
+  --color-accent-50: oklch(0.96 0.018 45);
+  --color-accent-100: oklch(0.92 0.04 45);
+  --color-accent-200: oklch(0.85 0.08 40);
+  --color-accent-300: oklch(0.76 0.11 38);
+  --color-accent-400: oklch(0.66 0.14 35);
+  --color-accent-500: oklch(0.58 0.16 32);
+  --color-accent-600: oklch(0.50 0.16 30);
+  --color-accent-700: oklch(0.42 0.14 28);
+  --color-accent-800: oklch(0.34 0.12 28);
+  --color-accent-900: oklch(0.28 0.10 28);
+  --color-accent-950: oklch(0.20 0.06 28);
+
+  /* Entrance animation tokens. The "both" fill mode preserves the start frame while
+     animation-delay elapses, allowing staggered reveals. */
+  --animate-page-enter: pageEnter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-section-enter: sectionEnter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-list-enter: listEnter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-menu-enter: menuEnter 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sectionEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes listEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes menuEnter {
+  from { opacity: 0; transform: scale(0.96) translateY(-2px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter,
+  .animate-section-enter,
+  .animate-list-enter,
+  .animate-menu-enter {
+    animation: none !important;
+  }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+    /* The iOS WebView paints this colour in the overscroll regions and behind the
+       status bar / home indicator. Without it, the underlying view would show. */
+    background-color: var(--color-canvas-dark);
+    /* Disable horizontal scroll to prevent any overflowing element from shifting the
+       layout sideways under the notch on mobile devices. */
+    overflow-x: hidden;
+  }
+
+  html.light {
+    color-scheme: light;
+    background-color: var(--color-canvas);
+  }
+
+  body {
+    background-color: var(--color-canvas-dark);
+    @apply text-stone-100 antialiased;
+    overflow-x: hidden;
+    /* Disables vertical rubber-band overscroll. */
+    overscroll-behavior-y: none;
+  }
+
+  html.light body {
+    background-color: var(--color-canvas);
+    @apply text-stone-900;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent-500 ring-offset-2 ring-offset-white;
+  }
+
+  html:not(.light) *:focus-visible {
+    @apply ring-offset-stone-950;
+  }
+}
+
+/* Print stylesheet. Hides application chrome and flattens visual styling for a
+   document-oriented presentation. */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  header, aside, nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  [class*="ring-"], [class*="shadow"] {
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+  }
+
+  article, section, .print-keep {
+    break-inside: avoid;
+  }
+
+  a[href] {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  button {
+    display: none !important;
+  }
+}

@@ -1,0 +1,36 @@
+# .NET build / IDE artifacts
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+
+# Frontend — built separately, deployed separately
+web/node_modules/
+web/dist/
+web/ios/
+web/android/
+
+# General
+.git/
+.github/
+.idea/
+.vscode/
+.DS_Store
+*.log
+
+# Local secrets / env
+.env
+.env.*
+**/appsettings.Development.json
+**/secrets.json
+
+# Tests aren't needed in the runtime image; the build stage uses its own checked-in tests.
+tests/**/bin/
+tests/**/obj/
+
+# Docs
+docs/
+README.md
+README.uk.md
+PLAN.md
+KEYBINDS.md
