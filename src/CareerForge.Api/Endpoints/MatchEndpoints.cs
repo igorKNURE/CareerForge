@@ -28,7 +28,7 @@ public static class MatchEndpoints
 
         group.MapPost("/", CreateAsync).WithValidation<CreateMatchRequest>().RequireRateLimiting("llm-heavy");
         group.MapPost("/{id:guid}/rerun", RerunAsync).RequireRateLimiting("llm-heavy");
-        group.MapGet("/", ListAsync).WithBrowserCache(30);
+        group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapDelete("/{id:guid}", DeleteAsync);
 

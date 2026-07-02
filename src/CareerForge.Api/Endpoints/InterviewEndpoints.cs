@@ -26,7 +26,7 @@ public static class InterviewEndpoints
         var group = app.MapGroup("/sessions").WithTags("Interview").RequireAuthorization();
 
         group.MapPost("/", CreateAsync).WithValidation<CreateSessionRequest>();
-        group.MapGet("/", ListAsync).WithBrowserCache(30);
+        group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapPatch("/{id:guid}", RenameAsync).WithValidation<RenameSessionRequest>();
         group.MapDelete("/{id:guid}", DeleteAsync);
