@@ -27,7 +27,7 @@ public static class InterviewEndpoints
 
         group.MapPost("/", CreateAsync).WithValidation<CreateSessionRequest>();
         group.MapGet("/", ListAsync).WithBrowserCache(30);
-        group.MapGet("/{id:guid}", GetByIdAsync).WithBrowserCache(15);
+        group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapPatch("/{id:guid}", RenameAsync).WithValidation<RenameSessionRequest>();
         group.MapDelete("/{id:guid}", DeleteAsync);
         group.MapPost("/{id:guid}/turns", GenerateNextQuestionAsync).RequireRateLimiting("llm-interactive");

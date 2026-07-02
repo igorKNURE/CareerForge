@@ -30,7 +30,7 @@ public static class JobDescriptionEndpoints
         group.MapPost("/upload", UploadAsync).DisableAntiforgery().RequireRateLimiting("llm-heavy");
         group.MapPost("/{id:guid}/reparse", ReparseAsync).RequireRateLimiting("llm-heavy");
         group.MapGet("/", ListAsync).WithBrowserCache(30);
-        group.MapGet("/{id:guid}", GetByIdAsync).WithBrowserCache(15);
+        group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapDelete("/{id:guid}", DeleteAsync);
 
         return app;
